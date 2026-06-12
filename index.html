@@ -26,30 +26,37 @@
     <video id="master-video" src="src/assets/stationmaster.mp4" preload="auto"></video>
 
     <script>
-        const bellScreen = document.getElementById('bell-screen');
-        const video = document.getElementById('master-video');
+      const bellScreen = document.getElementById('bell-screen');
+      const video = document.getElementById('master-video');
 
-        function startStation() {
-            // 전체화면 요청 (상단바 제거 및 몰입감 확보)
-            if (document.documentElement.requestFullscreen) {
-                document.documentElement.requestFullscreen();
-            }
-            
-            // 화면 전환 및 재생
-            bellScreen.style.display = 'none';
-            video.style.display = 'block';
-            video.play();
-        }
+      // 화면을 누르면 작동하는 타이밍 통제 기믹
+      document.body.addEventListener('click', () => {
+          const now = new Date();
+          const seconds = now.getSeconds();
 
-        // 영상이 끝나면 자동으로 첫 대기 상태로 리셋
-        video.onended = function() {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-            video.style.display = 'none';
-            bellScreen.style.display = 'flex';
-            video.currentTime = 0; // 영상 처음으로 되돌리기
-        };
+          // 매 분 00초 ~ 11초 사이에만 작동 가능하도록 통제
+          if (seconds >= 0 && seconds < 11) {
+              bellScreen.style.display = 'none';
+              video.currentTime = seconds; // 현재 초에 맞게 영상 싱크 매칭
+              video.play();
+          } else {
+              alert("현재 열차가 운행 중입니다. 잠시만 대기해 주세요.");
+          }
+      });
+
+      // 영상 종료 혹은 타이밍을 벗어났을 때 대기화면 리셋
+      function checkMasterSync() {
+          const now = new Date();
+          const seconds = now.getSeconds();
+
+          if (seconds >= 11 || seconds < 0) {
+              video.pause();
+              video.currentTime = 0;
+              bellScreen.style.display = 'flex';
+          }
+      }
+
+      setInterval(checkMasterSync, 500);
     </script>
   </body>
 </html>

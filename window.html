@@ -7,41 +7,47 @@
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        /* 출발 대기 중인 승강장 정지 이미지 배경 설정 가능 */
-        #bg-container { width: 100%; height: 100%; background: url('waiting-platform.jpg') no-repeat center center; background-size: cover; display: block; }
     </style>
 </head>
 <body>
 
-    <video id="window-video" src="src/assets/train-window.mp4" preload="auto" muted></video>
+    <div id="interaction-trigger" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#111; color:white; display:flex; justify-content:center; align-items:center; z-index:999; cursor:pointer; font-size:20px; font-family:sans-serif;">
+        [ 기차 창문 화면 ] 구동을 위해 화면을 한 번 클릭해 주세요.
+    </div>
+
+    <video id="window-video" src="train-window.mp4" preload="auto" muted playsinline></video>
 
     <script>
         const windowVideo = document.getElementById('window-video');
+        const trigger = document.getElementById('interaction-trigger');
 
-        // 예시 타임라인 세팅 (전체 사이클: 40초)
-        // 0초 ~ 10초: 출발 대기 (정지 상태)
-        // 10초 ~ 40초: 재생 (기차 주행 및 불시착)
-        const DEPARTURE_DELAY = 10000; // 10초 (밀리초 단위)
-        const TOTAL_CYCLE = 40000;     // 40초
+        // 첫 구동 시 아무데나 누르면 대기화면이 사라지며 타임라인 작동 시작
+        trigger.addEventListener('click', () => {
+            trigger.style.display = 'none';
+            syncTrainWindow();
+        });
 
-        function runTrainTimeline() {
-            // 1. 처음에는 영상 정지 및 대기 (승강장 풍경 보임)
-            windowVideo.pause();
-            windowVideo.currentTime = 0;
+        function syncTrainWindow() {
+            if (trigger.style.display !== 'none') return; // 첫 클릭 전엔 정지
 
-            // 2. 10초 뒤에 기차 출발 (재생)
-            setTimeout(() => {
-                windowVideo.play();
-            }, DEPARTURE_DELAY);
+            const now = new Date();
+            const seconds = now.getSeconds(); // 0~59초
+
+            // 정확히 11초가 되는 순간부터 49초까지 (38초간) 영상 재생
+            if (seconds >= 11 && seconds < 49) {
+                if (windowVideo.paused) {
+                    windowVideo.currentTime = seconds - 11; // 흘러간 시간만큼 싱크 매칭
+                    windowVideo.play().catch(e => console.log(e));
+                }
+            } else {
+                // 그 외의 시간(0~10초 대기 / 49~59초 정비)에는 무조건 영상 정지
+                windowVideo.pause();
+                windowVideo.currentTime = 0;
+            }
         }
 
-        // 최초 실행
-        runTrainTimeline();
-
-        // 40초마다 이 타임라인 전체를 무한 반복 (1단계 로테이션 주기와 싱크 매칭)
-        setInterval(() => {
-            runTrainTimeline();
-        }, TOTAL_CYCLE);
+        // 0.5초마다 시간 체크하여 싱크 강제 보정
+        setInterval(syncTrainWindow, 500);
     </script>
 </body>
 </html>
