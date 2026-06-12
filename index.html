@@ -25,38 +25,53 @@
 
     <video id="master-video" src="src/assets/stationmaster.mp4" preload="auto"></video>
 
-    <script>
+    <script type="module">
+
+      // Import the functions you need from the SDKs you need
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+      import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+      // TODO: Add SDKs for Firebase products that you want to use
+      // https://firebase.google.com/docs/web/setup#available-libraries
+
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyB20ad84ja_UqtWj9DUTx28MxSVNx83pt4",
+        authDomain: "proto-web-sync.firebaseapp.com",
+        databaseURL: "https://proto-web-sync-default-rtdb.firebaseio.com",
+        projectId: "proto-web-sync",
+        storageBucket: "proto-web-sync.firebasestorage.app",
+        messagingSenderId: "663151649631",
+        appId: "1:663151649631:web:57ef3a11b8758a7c270cea"
+      };
+
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+
       const bellScreen = document.getElementById('bell-screen');
       const video = document.getElementById('master-video');
 
+
       // 화면을 누르면 작동하는 타이밍 통제 기믹
       document.body.addEventListener('click', () => {
-          const now = new Date();
-          const seconds = now.getSeconds();
+          if(bellScreen.style.display === 'none') return; // 이미 재생 중이면 무시
 
-          // 매 분 00초 ~ 11초 사이에만 작동 가능하도록 통제
-          if (seconds >= 0 && seconds < 11) {
-              bellScreen.style.display = 'none';
-              video.currentTime = seconds; // 현재 초에 맞게 영상 싱크 매칭
-              video.play();
-          } else {
-              alert("현재 열차가 운행 중입니다. 잠시만 대기해 주세요.");
-          }
+          bellScreen.style.display = 'none';
+          video.play();
+
+          // 🔔 [핵심] 종이 눌린 실제 시간(timestamp)을 데이터베이스에 기록하여 2단계에 신호 전송
+          set(ref(db, 'gallery/trigger'), {
+              status: "clicked",
+              timestamp: Date.now()
+          });
       });
 
-      // 영상 종료 혹은 타이밍을 벗어났을 때 대기화면 리셋
-      function checkMasterSync() {
-          const now = new Date();
-          const seconds = now.getSeconds();
-
-          if (seconds >= 11 || seconds < 0) {
-              video.pause();
-              video.currentTime = 0;
-              bellScreen.style.display = 'flex';
-          }
-      }
-
-      setInterval(checkMasterSync, 500);
+      // 역무원 영상(11초)이 끝나면 대기화면으로 리셋
+      video.onended = () => {
+          video.currentTime = 0;
+          bellScreen.style.display = 'flex';
+      };
     </script>
   </body>
 </html>
