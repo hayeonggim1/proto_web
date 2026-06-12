@@ -43,17 +43,22 @@
         const bellScreen = document.getElementById('bell-screen');
         const video = document.getElementById('master-video');
 
+        console.log("[1단계 매표소] 시스템 준비 완료. 【영상 멈춤 및 대기 상태】");
+
         // 종을 누르면 실행되는 함수
         document.body.addEventListener('click', () => {
             if(bellScreen.style.display === 'none') return; // 이미 재생 중이면 무시
 
             bellScreen.style.display = 'none';
             video.play();
+            console.log("[1단계 매표소] 🎬 관객이 종을 눌렀습니다. 역무원 안내 영상(11초)을 시작합니다.");
 
             // 🔔 [핵심] 종이 눌린 실제 시간(timestamp)을 데이터베이스에 기록하여 2단계에 신호 전송
             set(ref(db, 'gallery/trigger'), {
                 status: "clicked",
                 timestamp: Date.now()
+            }).then(() => {
+                console.log("[1단계 매표소] 🚀 신호 전송 성공! (서버에 기록 완료)");
             });
         });
 
@@ -61,6 +66,7 @@
         video.onended = () => {
             video.currentTime = 0;
             bellScreen.style.display = 'flex';
+            console.log("[1단계 매표소] 🔄 역무원 영상 상영 종료. 다시 【영상 멈춤 및 대기 상태】로 리셋합니다.");
         };
     </script>
 </body>

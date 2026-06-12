@@ -35,42 +35,60 @@
 
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
-        
-        // 🛠️ 누락되었던 데이터베이스 객체(db)를 여기서 정의해 줍니다.
         const db = getDatabase(app);
 
         const windowVideo = document.getElementById('window-video');
         const trigger = document.getElementById('interaction-trigger');
         let timerId = null;
+        let isFirstLoad = true; // 최초 접속 시 과거 잔여 데이터 오작동 방지 플래그
+
+        console.log("[2단계 기차 창문] 시스템 로드 완료. 활성화 클릭을 기다리는 중...");
 
         trigger.addEventListener('click', () => {
             trigger.style.display = 'none';
+            console.log("[2단계 기차 창문] 🔒 브라우저 락 해제. 완벽한 【영상 멈춤 및 실시간 신호 대기 상태】 돌입.");
             startListening(); 
         });
 
-        function startListening() {
-            // 이제 db와 ref가 정상 정의되어 에러가 나지 않습니다.
+function startListening() {
             const triggerRef = ref(db, 'gallery/trigger');
 
+            // 📥 [신호 받음] 데이터베이스 실시간 구독 시동
             onValue(triggerRef, (snapshot) => {
                 const data = snapshot.val();
                 if (!data) return;
 
+                // 새로고침 시 과거 신호에 오작동하지 않도록 필터링
+                if (isFirstLoad) {
+                    isFirstLoad = false;
+                    console.log("[2단계 기차 창문] 🔍 데이터베이스 연결 성공. 실시간 수신 대기 중...");
+                    return;
+                }
+
+                console.log("[2단계 기차 창문] 📥 [신호 받음] 1단계 매표소에서 종소리 트리거를 감지했습니다!");
+
+                // 기존 진행 중이던 타이머나 영상이 있다면 강제 초기화 【영상 멈춤】
                 clearTimeout(timerId);
                 windowVideo.pause();
                 windowVideo.currentTime = 0;
 
-                // 1단계 종 터치 발생 시점으로부터 정확히 11초 뒤에 주행 영상 시작
+                // ⏱️ [타이머 작동] 역무원 영상 길이에 맞춰 11초 카운트다운 시작
+                console.log("[2단계 기차 창문] ⏱️ 11초 타이머를 시작합니다. (역무원 안내 종료 후 출발 대기)");
+
                 timerId = setTimeout(() => {
-                    windowVideo.play().catch(e => console.log(e));
-                }, 11000); 
+                    // 🎬 기차 주행 영상 시작
+                    console.log("[2단계 기차 창문] 🎬 11초 경과! 기차 주행 영상(38초)을 자동으로 시작합니다.");
+                    windowVideo.play().catch(e => console.log("재생 오류 발생:", e));
+                }, 11000); // 11초(11000ms) 대기
             });
         }
 
-        // 38초 주행이 끝나면 리셋 대기
+        // 38초 주행 영상이 끝나면 실행되는 이벤트 리스너
         windowVideo.onended = () => {
+            // 🔄 다음 관객을 위해 처음 상태로 리셋 【영상 멈춤】
             windowVideo.pause();
             windowVideo.currentTime = 0;
+            console.log("[2단계 기차 창문] 🔄 주행 완료 및 종료. 다음 종소리 신호를 위해 【영상 멈춤 및 대기 상태】로 복귀합니다.");
         };
     </script>
 </body>
